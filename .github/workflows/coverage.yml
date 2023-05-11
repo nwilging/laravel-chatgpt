@@ -18,7 +18,9 @@ jobs:
       - name: Run Tests
         env:
           XDEBUG_MODE: coverage
-        run: vendor/bin/phpunit
+        run: |
+          sh .github/scripts/pre-test.sh
+          vendor/bin/phpunit
       - name: Commit Coverage
         uses: timkrase/phpunit-coverage-badge@v1.2.0
         with:
