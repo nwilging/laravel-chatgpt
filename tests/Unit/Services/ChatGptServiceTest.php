@@ -76,6 +76,56 @@ class ChatGptServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
+    public function testCreateChatWithFunctions()
+    {
+        $message1 = $this->generateMessage(ChatCompletionMessage::ROLE_SYSTEM, 'system', 'system message');
+        $message2 = $this->generateMessage(ChatCompletionMessage::ROLE_USER, 'username', 'user message');
+        $message3 = $this->generateMessage(ChatCompletionMessage::ROLE_BOT, 'bot', 'bot message');
+
+        $functions = ['func1', 'func2', 'func3'];
+
+        $this->tokenizer->shouldReceive('validateMessages')
+            ->once()
+            ->with([$message1, $message2, $message3], 'gpt-3.5-turbo');
+
+        $chat = \Mockery::mock(Chat::class);
+        $this->openAiClient->shouldReceive('chat')
+            ->once()
+            ->andReturn($chat);
+
+        $response = \Mockery::mock(CreateResponse::class);
+        $response->shouldReceive('toArray')
+            ->once()
+            ->andReturn([]);
+
+        $chat->shouldReceive('create')
+            ->once()
+            ->with([
+                'model' => 'gpt-3.5-turbo',
+                'temperature' => 1,
+                'top_p' => 1,
+                'n' => 1,
+                'functions' => $functions,
+                'messages' => array_map(fn (ChatCompletionMessage $message) => $message->toArray(), [
+                    $message1,
+                    $message2,
+                    $message3,
+                ]),
+            ])->andReturn($response);
+
+        $result = $this->service->createChat(
+            'gpt-3.5-turbo',
+            [$message1, $message2, $message3],
+            1,
+            1,
+            1,
+            false,
+            $functions,
+        );
+
+        $this->assertSame([], $result);
+    }
+
     public function testCreateChatPrunesMessages()
     {
         $messages = [];
@@ -190,6 +240,76 @@ class ChatGptServiceTest extends TestCase
             ])->andReturn($response);
 
         $result = $this->service->createChatRetainInitialPrompt('gpt-3.5-turbo', $messages);
+        $this->assertSame([], $result);
+    }
+
+    public function testCreateChatRetainInitialPrunesMessagesAndRetainsInitialUsingFunctions()
+    {
+        $messages = [];
+        for ($i=0; $i<5; $i++) {
+            $messages[] = $this->generateMessage(Arr::random([
+                ChatCompletionMessage::ROLE_SYSTEM,
+                ChatCompletionMessage::ROLE_USER,
+                ChatCompletionMessage::ROLE_BOT,
+            ]), 'username', 'message content');
+        }
+
+        $functions = ['func1', 'func2', 'func3'];
+
+        // Over by 100 tokens, should remove 2 message
+        $overage1 = 4096 + 200;
+        $prune1 = [$messages[0], ...array_slice($messages, 2)];
+
+        $overage2 = 4096 + 100;
+        $prune2 = [$messages[0], ...array_slice($messages, 3)];
+
+        $this->log->shouldReceive('debug')->once()->with('Max tokens exceeded by 200. Removing 2 messages and retrying.');
+        $this->tokenizer->shouldReceive('validateMessages')
+            ->once()
+            ->with($messages, 'gpt-3.5-turbo')
+            ->andThrow(new MaxTokensExceededException($overage1, 4096));
+
+        $this->log->shouldReceive('debug')->once()->with('Max tokens exceeded by 100. Removing 2 messages and retrying.');
+        $this->tokenizer->shouldReceive('validateMessages')
+            ->once()
+            ->with($prune1, 'gpt-3.5-turbo')
+            ->andThrow(new MaxTokensExceededException($overage2, 4096));
+
+        $this->tokenizer->shouldReceive('validateMessages')
+            ->once()
+            ->with($prune2, 'gpt-3.5-turbo');
+
+        $chat = \Mockery::mock(Chat::class);
+        $this->openAiClient->shouldReceive('chat')
+            ->once()
+            ->andReturn($chat);
+
+        $response = \Mockery::mock(CreateResponse::class);
+        $response->shouldReceive('toArray')
+            ->once()
+            ->andReturn([]);
+
+        $chat->shouldReceive('create')
+            ->once()
+            ->with([
+                'model' => 'gpt-3.5-turbo',
+                'temperature' => 1,
+                'top_p' => 1,
+                'n' => 1,
+                'functions' => $functions,
+                'messages' => array_map(fn (ChatCompletionMessage $message) => $message->toArray(), $prune2),
+            ])->andReturn($response);
+
+        $result = $this->service->createChatRetainInitialPrompt(
+            'gpt-3.5-turbo',
+            $messages,
+            1,
+            1,
+            1,
+            false,
+            $functions,
+        );
+
         $this->assertSame([], $result);
     }
 

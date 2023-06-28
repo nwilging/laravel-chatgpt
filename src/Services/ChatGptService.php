@@ -32,6 +32,7 @@ class ChatGptService implements ChatGptServiceContract
         float $topP = 1,
         int $n = 1,
         bool $stream = false,
+        array $functions = [],
         ?array $stop = null,
         ?int $maxTokens = null,
         float $presencePenalty = 0,
@@ -45,6 +46,7 @@ class ChatGptService implements ChatGptServiceContract
             $topP,
             $n,
             $stream,
+            $functions,
             $stop,
             $maxTokens,
             $presencePenalty,
@@ -60,11 +62,12 @@ class ChatGptService implements ChatGptServiceContract
         float $topP = 1,
         int $n = 1,
         bool $stream = false,
+        array $functions = [],
         ?array $stop = null,
         ?int $maxTokens = null,
         float $presencePenalty = 0,
         float $frequencyPenalty = 0,
-        ?string $user = null
+        ?string $user = null,
     ): array {
         return $this->create([
             $model,
@@ -73,6 +76,7 @@ class ChatGptService implements ChatGptServiceContract
             $topP,
             $n,
             $stream,
+            $functions,
             $stop,
             $maxTokens,
             $presencePenalty,
@@ -90,6 +94,7 @@ class ChatGptService implements ChatGptServiceContract
             $topP,
             $n,
             $stream,
+            $functions,
             $stop,
             $maxTokens,
             $presencePenalty,
@@ -111,6 +116,7 @@ class ChatGptService implements ChatGptServiceContract
             'presence_penalty' => $presencePenalty,
             'frequency_penalty' => $frequencyPenalty,
             'user' => $user,
+            'functions' => $functions,
             'messages' => array_map(fn (ChatCompletionMessage $message) => $message->toArray(), $messages),
         ]));
 

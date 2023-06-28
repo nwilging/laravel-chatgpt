@@ -14,6 +14,7 @@ interface ChatGptServiceContract
      * @param float $topP
      * @param int $n
      * @param bool $stream
+     * @param array $functions
      * @param array|null $stop
      * @param int|null $maxTokens
      * @param float $presencePenalty
@@ -28,6 +29,7 @@ interface ChatGptServiceContract
         float $topP = 1,
         int $n = 1,
         bool $stream = false,
+        array $functions = [],
         ?array $stop = null,
         ?int $maxTokens = null,
         float $presencePenalty = 0,
@@ -42,6 +44,7 @@ interface ChatGptServiceContract
      * @param float $topP
      * @param int $n
      * @param bool $stream
+     * @param array $functions
      * @param array|null $stop
      * @param int|null $maxTokens
      * @param float $presencePenalty
@@ -56,6 +59,7 @@ interface ChatGptServiceContract
         float $topP = 1,
         int $n = 1,
         bool $stream = false,
+        array $functions = [],
         ?array $stop = null,
         ?int $maxTokens = null,
         float $presencePenalty = 0,
